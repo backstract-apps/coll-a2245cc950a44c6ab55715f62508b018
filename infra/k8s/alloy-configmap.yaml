@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-configmap
+  namespace: default
+data:
+  alloy.river: |
+    logging {
+      level  = "debug"
+      format = "logfmt"
+    }
+
+    // OTLP Receiver for traces, metrics, and logs from the application SDK
+    otelcol.receiver.otlp "app_otlp" {
+      grpc {
+        endpoint = "0.0.0.0:4317"
+      }
+      http {
+        endpoint = "0.0.0.0:4318"
+      }
+      output {
+        traces  = [otelcol.processor.batch.default.input]
+        metrics = [otelcol.processor.batch.default.input]
+        logs    = [otelcol.processor.batch.default.input]
+      }
+    }
+
+    // Kubernetes Pod Discovery
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
+
+    // Kubernetes Logs Source
+    loki.source.kubernetes "app_logs" {
+      targets    = discovery.kubernetes.pods.targets
+      forward_to = [loki.write.main.receiver]
+
+    }
+
+    // Batch processor
+    otelcol.processor.batch "default" {
+      timeout         = "1s"
+      send_batch_size = 1024
+      output {
+        metrics = [otelcol.exporter.prometheus.default.input]
+        logs    = [otelcol.exporter.loki.default.input]
+        traces  = [otelcol.exporter.otlp.tempo.input]
+      }
+    }
+
+    // Loki Exporter (for OTLP logs)
+    otelcol.exporter.loki "default" {
+      forward_to = [loki.write.main.receiver]
+    }
+
+    
+    
+
+    // Loki Writer
+    loki.write "main" {
+      endpoint {
+        url = "https://loki.backstract.io/loki/api/v1/push"
+      }
+      external_labels = {
+        environment = "coll-a2245cc950a44c6ab55715f62508b018",
+        source_type = "alloy_k8s_coll-a2245cc950a44c6ab55715f62508b018",
+      }
+    }
+
+    // Prometheus Exporter
+    otelcol.exporter.prometheus "default" {
+      forward_to = [prometheus.remote_write.main.receiver]
+    }
+
+    prometheus.remote_write "main" {
+      endpoint {
+        url = "https://prometheus.backstract.io/api/v1/write"
+
+      }
+    }
+
+    // OTLP Exporter for traces to Tempo
+    otelcol.exporter.otlp "tempo" {
+      client {
+        endpoint = "https://tempo.backstract.io:4317"
+        tls {
+          insecure = false
+        }
+      }
+    }

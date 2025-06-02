@@ -17,6 +17,24 @@ spec:
         app: coll-a2245cc950a44c6ab55715f62508b018
         release: prometheus  # Added label for PodMonitor discovery
     spec:
+      ServiceAccountName: alloy-service-account
+      volumes: 
+        - name: alloy-config 
+          configMap:
+            name: alloy-configmap
+            items:
+              - key: alloy.river 
+                path: config.alloy 
+
+        - name : podinfo 
+          downwardAPI:
+            items:
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels
+              - path: "annotations"
+                fieldRef:
+                  fieldPath: metadata.annotations
       containers:
         - name: coll-a2245cc950a44c6ab55715f62508b018
           image: 216084506783.dkr.ecr.ap-south-1.amazonaws.com/backstract_apps:coll-a2245cc950a44c6ab55715f62508b018
@@ -26,3 +44,34 @@ spec:
               name: http  # Optional for HTTP traffic
             - containerPort: 7070 #same as the deployed code
               name: metrics  # Added port for metrics scraping
+
+        - name: alloy-sidecar
+          image: grafana/alloy:latest
+          args:
+            - "run"
+            - "/etc/alloy/config.alloy"
+            - "--server.http.listen-addr=0.0.0.0:12345"
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: alloy-http
+              containerPort: 12345
+              protocol: TCP
+          volumeMounts:
+            - name: alloy-config
+              mountPath: /etc/alloy
+            - name: podinfo
+              mountPath: /etc/podinfo
+              readOnly: true
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      

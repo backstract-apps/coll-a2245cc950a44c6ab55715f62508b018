@@ -47,6 +47,8 @@ jobs:
       - name: Deploy image to Amazon EKS
         run: |
           kubectl apply -f infra/k8s/aws-auth.yaml
+          kubectl apply -f infra/k8s/alloy-rbac.yaml
+          kubectl apply -f infra/k8s/development/alloy-configmap.yaml
           kubectl apply -f infra/k8s/deployment.yaml
           kubectl apply -f infra/k8s/service.yaml
           kubectl rollout restart deployment coll-a2245cc950a44c6ab55715f62508b018-depl
