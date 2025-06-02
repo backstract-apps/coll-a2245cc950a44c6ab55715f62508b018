@@ -17,7 +17,7 @@ spec:
         app: coll-a2245cc950a44c6ab55715f62508b018
         release: prometheus  # Added label for PodMonitor discovery
     spec:
-      ServiceAccountName: alloy-service-account
+      serviceAccountName: alloy-service-account
       volumes: 
         - name: alloy-config 
           configMap:
@@ -74,4 +74,3 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
-      
