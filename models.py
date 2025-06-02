@@ -6,11 +6,13 @@ from decimal import Decimal
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Time, Float, Text, ForeignKey, JSON, Numeric, Date, \
     TIMESTAMP, UUID
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, as_declarative, declared_attr
+
+DeclarativeBase = declarative_base()
 
 
 @as_declarative()
-class Base:
+class Base(DeclarativeBase):
     id: int
     __name__: str
 
@@ -27,7 +29,7 @@ class Base:
         result = {}
         for column in class_mapper(self.__class__).columns:
             value = getattr(self, column.key)
-                # Handle UUID fields
+            # Handle UUID fields
             if isinstance(value, uuid.UUID):
                 value = str(value)
             # Handle datetime fields
@@ -39,8 +41,6 @@ class Base:
 
             result[column.key] = value
         return result
-
-
 
 
 class Roles(Base):
@@ -55,5 +55,3 @@ class Users(Base):
     username = Column(String, primary_key=False)
     email = Column(String, primary_key=False)
     role_id = Column(Integer, primary_key=False)
-
-
