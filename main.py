@@ -61,8 +61,15 @@ async def prometheus_middleware(request: Request, call_next):
     IN_PROGRESS.inc()  # Increment in-progress requests
 
     try:
+        start_time = time.time()
         response = await call_next(request)
+        process_time = (time.time()-start_time)*1000
         status_code = response.status_code
+        logger.info(
+            f"{request.method} {request.url.path} "
+            f"Status: {response.status_code} "
+            f"Time: {process_time:.2f}ms"
+        )
     except Exception as e:
         status_code = 500  # Internal server error
         raise e
